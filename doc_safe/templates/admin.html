@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Admin Panel - Document Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+      <div class="container-fluid">
+        <a class="navbar-brand fw-bold" href="#">📋 Document Manager</a>
+        <div class="d-flex align-items-center gap-2">
+          <span class="text-white me-3"><small>Admin:</small> <strong>{{ current_user.username }}</strong></span>
+          <a class="btn btn-sm btn-outline-light" href="/dashboard">Dashboard</a>
+          <a class="btn btn-sm btn-light" href="/logout">Logout</a>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container mt-5">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, msg in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+              {{ msg }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <!-- Users Section -->
+      <div class="admin-section">
+        <div class="admin-header">
+          <div>
+            <h5>👥 User Management</h5>
+            <p class="text-muted mb-0 small">Manage user roles and approvals</p>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Approved</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for u in users %}
+              <tr>
+                <td><strong>{{ u.username }}</strong></td>
+                <td>{{ u.email }}</td>
+                <td>
+                  {% if u.role == 'admin' %}
+                    <span class="badge bg-danger">Admin</span>
+                  {% else %}
+                    <span class="badge bg-secondary">User</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if u.is_approved %}
+                    <span class="badge bg-success">Approved</span>
+                  {% else %}
+                    <span class="badge bg-warning">Pending</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if not u.is_approved %}
+                    <form style="display:inline" method="post" action="/admin/approve/{{ u.id }}">
+                      <button class="btn btn-sm btn-success" type="submit" title="Approve">✓ Approve</button>
+                    </form>
+                  {% endif %}
+                  <form style="display:inline" method="post" action="/admin/reject/{{ u.id }}" onsubmit="return confirm('Delete this user?');">
+                    <button class="btn btn-sm btn-danger" type="submit" title="Delete">✕ Delete</button>
+                  </form>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="5" class="text-center text-muted py-4">No users found.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Documents Section -->
+      <div class="admin-section">
+        <div class="admin-header">
+          <div>
+            <h5>📁 Document Management</h5>
+            <p class="text-muted mb-0 small">View and manage all documents</p>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Filename</th>
+                <th>Uploaded By</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for d in docs %}
+              <tr>
+                <td><strong>{{ d.filename }}</strong></td>
+                <td><span class="badge bg-info">{{ d.username }}</span></td>
+                <td><small class="text-muted">{{ d.uploaded_at }}</small></td>
+                <td>
+                  <a class="btn btn-sm btn-outline-primary" href="/uploads/{{ d.filepath.split('/')[-1] }}" title="Download">⬇ Download</a>
+                  <form style="display:inline" method="post" action="/admin/delete_doc/{{ d.id }}" onsubmit="return confirm('Delete this document?');">
+                    <button class="btn btn-sm btn-danger" type="submit" title="Delete">✕ Delete</button>
+                  </form>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="4" class="text-center text-muted py-4">No documents found.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

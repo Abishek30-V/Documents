@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dashboard - Document Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+      <div class="container-fluid">
+        <a class="navbar-brand fw-bold" href="#">Document Manager</a>
+        <div class="d-flex align-items-center">
+          {% if current_user.is_authenticated %}
+            <span class="text-white me-3">Signed in as <strong>{{ current_user.username }}</strong></span>
+            {% if current_user.role == 'admin' %}
+              <a class="btn btn-sm btn-outline-light me-2" href="/admin">Admin Panel</a>
+            {% endif %}
+            <a class="btn btn-sm btn-light" href="/logout">Logout</a>
+          {% endif %}
+        </div>
+      </div>
+    </nav>
+
+    <div class="container mt-5">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, msg in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+              {{ msg }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <div class="row">
+        <div class="col-lg-8">
+          <div class="card mb-4">
+            <div class="card-body">
+              <h5 class="card-title">Documents</h5>
+              {% if current_user.role == 'admin' %}
+                <div class="mb-3">
+                  <form method="post" action="{{ url_for('toggle_admin_approval') }}" style="display:inline">
+                    {% if session.get('admin_approval_mode') %}
+                      <button class="btn btn-warning btn-sm" type="submit">Disable Approval Mode</button>
+                    {% else %}
+                      <button class="btn btn-outline-warning btn-sm" type="submit">Enable Approval Mode</button>
+                    {% endif %}
+                  </form>
+                </div>
+
+                <form method="post" enctype="multipart/form-data" class="mb-4">
+                  <div class="input-group">
+                    <input class="form-control" type="file" name="file" required>
+                    <button class="btn btn-primary" type="submit">Upload Document</button>
+                  </div>
+                </form>
+              {% else %}
+                <div class="alert alert-info mb-4">
+                  <strong>Info:</strong> Uploads are restricted to administrators. Your account will be granted upload rights after approval.
+                </div>
+              {% endif %}
+
+              <h6 class="mt-4 mb-3">Documents Available</h6>
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead>
+                    <tr>
+                      <th>Filename</th>
+                      <th>Uploader</th>
+                      <th>Date</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for d in docs %}
+                    <tr>
+                      <td>{{ d.filename }}</td>
+                      <td><span class="badge bg-primary">{{ d.username if d.username is defined else current_user.username }}</span></td>
+                      <td><small class="text-muted">{{ d.uploaded_at }}</small></td>
+                      <td><a class="btn btn-sm btn-outline-primary" href="/uploads/{{ d.filepath.split('/')[-1] }}">Download</a></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="text-center text-muted py-4">No documents available yet.</td></tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          {% if pending_users and current_user.role == 'admin' %}
+          <div class="card mb-4 border-warning">
+            <div class="card-body">
+              <h5 class="card-title">Pending Approvals</h5>
+              <p class="text-muted small mb-3">Approve or reject newly registered users.</p>
+              <div class="table-responsive">
+                <table class="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>User</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for u in pending_users %}
+                    <tr>
+                      <td>
+                        <div class="fw-600">{{ u.username }}</div>
+                        <small class="text-muted">{{ u.email }}</small>
+                      </td>
+                      <td>
+                        <form method="post" action="/admin/approve/{{ u.id }}" style="display:inline-block">
+                          <button class="btn btn-sm btn-success" type="submit" title="Approve">✓</button>
+                        </form>
+                        <form method="post" action="/admin/reject/{{ u.id }}" style="display:inline-block" onsubmit="return confirm('Delete this user?');">
+                          <button class="btn btn-sm btn-danger" type="submit" title="Reject">✕</button>
+                        </form>
+                      </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="2" class="text-center text-muted small py-3">No pending users.</td></tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
